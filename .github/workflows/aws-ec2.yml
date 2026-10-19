@@ -143,8 +143,12 @@ jobs:
           [ "$PING" = "Online" ] || { echo "Instance SSM'de görünmedi: $IID"; exit 1; }
 
           # cloud-init beklenir: nginx paketi sonradan kurulursa varsayılan index.html bizimkinin üstüne yazar.
-          PARAMS=$(jq -nc --arg b "$BUCKET" \
-            '{commands: ["cloud-init status --wait > /dev/null || true", "aws s3 sync s3://\($b)/ /usr/share/nginx/html/ --delete"]}')
+          # nginx paketinin bozuk sembolik bağları (poweredby.png) sync'i 2 koduyla düşürür; önce silinir.
+          PARAMS=$(jq -nc --arg b "$BUCKET" '{commands: [
+            "cloud-init status --wait > /dev/null || true",
+            "find /usr/share/nginx/html -xtype l -delete",
+            "aws s3 sync s3://\($b)/ /usr/share/nginx/html/ --delete --only-show-errors"
+          ]}')
           CMD_ID=$(aws ssm send-command --instance-ids "$IID" --document-name AWS-RunShellScript \
             --comment "deploy ${GITHUB_SHA::7}" --parameters "$PARAMS" \
             --query Command.CommandId --output text)
