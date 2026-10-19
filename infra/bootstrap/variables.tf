@@ -24,6 +24,12 @@ variable "github_repo" {
   }
 }
 
+variable "github_sub_prefix" {
+  description = "OIDC sub öneki. Yeni repolar ID'li biçim kullanır: gh api repos/<sahip>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix"
+  type        = string
+  default     = null
+}
+
 variable "enable_ec2" {
   description = "EC2 rotası kullanılacaksa true: deploy rolüne EC2, SSM ve <project>-web-* IAM izinleri eklenir."
   type        = bool
