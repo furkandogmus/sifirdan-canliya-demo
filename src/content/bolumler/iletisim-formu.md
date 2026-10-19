@@ -1,64 +1,59 @@
 ---
-title: Sunucusuz iletişim formu
-description: Netlify Forms ile kodsuz, ücretsiz form; aynı form S3 ve EC2'deki kopyalarda da çalışır. E-posta bildirimi ve Resend seçeneği.
+title: E-posta gönderen iletişim formu
+description: Cloudflare Worker, Turnstile ve Resend ile sunucusuz form - kendi domain'inden, ücretsiz katmanda.
 group: Yayın rotaları
 order: 6
 ---
 
-Bu sitenin [iletişim sayfası](/iletisim.html) hiç sunucu kodu içermiyor. Gönderimleri Netlify Forms topluyor ve ücretsiz planda sınır yok.
+Statik bir sitede form göndermek için küçük bir sunucusuz parça gerekir: e-posta servisinin API anahtarı tarayıcıya konamaz, herkes görür.
 
-## Nasıl çalışıyor?
+## Mimari
 
-```html
-<form name="iletisim" method="POST" action="/tesekkurler.html"
-      data-netlify="true" netlify-honeypot="adres">
-  <input type="hidden" name="form-name" value="iletisim" />
-  <p hidden><input name="adres" /></p>   <!-- botlar için tuzak -->
-  <input name="isim" required />
-  <textarea name="mesaj" required></textarea>
-  <button>Gönder</button>
-</form>
+```text
+Ziyaretçi ─form→ Cloudflare Worker ─doğrula→ Turnstile
+                        └──────────gönder→ Resend ─→ senin e-postan
 ```
 
-1. Netlify yayın sırasında HTML'deki `data-netlify="true"` formunu bulur ve kaydeder.
-2. Ziyaretçi gönderince istek Netlify'a gider, gönderim panelde görünür.
-3. Netlify formu sadece `/` ile başlayan **göreli** bir `action` ile tanır; tam adres yazılırsa form kaydedilmez. S3 ve EC2'deki kopyalar için sayfadaki küçük bir betik, site Netlify'da değilse `action`'ı Netlify adresine çevirir: üç sitede tek form.
+| Parça | Görevi | Ücretsiz |
+|---|---|---|
+| Cloudflare Worker | Formu alır, kontrol eder, anahtarları saklar | Günde 100.000 istek |
+| Turnstile | Robot koruması, CAPTCHA'sız | Sınırsız doğrulama |
+| Resend | E-postayı senin domain'inden gönderir | Günde 100, ayda 3.000 |
 
-```html
-<script>
-  if (location.origin !== "https://sifirdan-canliya.netlify.app") {
-    document.querySelector('form[name="iletisim"]').action =
-      "https://sifirdan-canliya.netlify.app/tesekkurler.html";
-  }
-</script>
-```
+Tek şart kendi domain'in: Resend, domain doğrulanmadan sadece hesap sahibinin adresine gönderir.
 
-Yeni Netlify sitelerinde form algılama kapalı gelir. Bir kere açılır:
+## Worker ne kontrol ediyor?
+
+- **Köken:** istek sadece sitenin kendi adreslerinden gelebilir; başka bir siteden gelen istek 403 alır.
+- **Alanlar:** ad ve mesaj zorunlu, uzunluklar sınırlı, e-posta biçimi doğru olmalı.
+- **Turnstile:** token'ı Cloudflare'e sorar; robotsa 400.
+- **Resend:** e-postayı gönderir, "Yanıtla" ziyaretçinin adresine gider.
+
+Anahtarlar Worker'ın sırrı olarak durur, koda ve repoya girmez:
 
 ```bash
-netlify api updateSite --data '{"site_id":"<site-id>","body":{"processing_settings":{"ignore_html_forms":false}}}'
+npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put TURNSTILE_SECRET_KEY
 ```
 
-## Spam
+## Hesap açmadan test
 
-- **Gizli tuzak alanı** (`netlify-honeypot`): insanlar görmez, botlar doldurur; dolu gelen gönderim atılır.
-- **Netlify'ın spam filtresi**: her gönderimi otomatik süzer.
-
-Daha güçlü koruma için Cloudflare Turnstile kullanılır. Ama Turnstile'ın token'ı sunucuda doğrulanmalıdır; bu da bir fonksiyon demektir (aşağıdaki Resend yolu).
-
-## Bildirim
-
-En kolayı Netlify'ın kendi e-posta bildirimi: site › **Project configuration › Notifications › Emails and webhooks › Form submission notifications**. Domain ya da kod gerekmez.
-
-Gönderimleri terminalden görmek için:
+Cloudflare'in resmî Turnstile test anahtarları sayesinde Worker lokalde denenebilir:
 
 ```bash
-netlify api listSiteSubmissions --data '{"site_id":"<site-id>"}' | jq '.[] | {created_at, data}'
+# worker/.dev.vars
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+RESEND_API_KEY=re_sahte_anahtar
 ```
 
-## Kendi e-postanla: Resend
+```bash
+npx wrangler dev --port 8787 &
+curl -X POST http://127.0.0.1:8787/ -H 'Origin: http://localhost:4321' \
+  -F isim=Test -F mesaj=deneme -F cf-turnstile-response=XXXX.DUMMY.TOKEN.XXXX
+```
 
-Ziyaretçiye otomatik cevap ya da kendi tasarımın olan bir e-posta istiyorsan Resend kullanılır (ücretsiz: günde 100, ayda 3.000 e-posta). İki şart:
+Cevap "E-posta gönderilemedi", Worker logunda `Resend hatası 401`: istek Turnstile'dan geçti, Resend'e ulaştı, sahte anahtar reddedildi. Gerçek anahtarla e-posta gider.
 
-- **Kendi domain'in** gerekir; domain'siz sadece kendi adresine test gönderilebilir.
-- API anahtarı **asla tarayıcıya girmez**: form bir fonksiyona (Cloudflare Worker ya da Supabase Edge Function) gider, fonksiyon Turnstile'ı doğrular ve Resend'i çağırır.
+## Yayın
+
+Worker da site gibi GitHub Actions ile yayınlanır: PR'da `wrangler deploy --dry-run`, `main`'de `wrangler deploy`. Kurulumun tamamı [sifirdan-canliya](https://github.com/furkandogmus/sifirdan-canliya) reposundaki `iletisim-formu` skill'inde.
