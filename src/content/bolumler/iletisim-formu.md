@@ -10,8 +10,7 @@ Bu sitenin [iletişim sayfası](/iletisim.html) hiç sunucu kodu içermiyor. Gö
 ## Nasıl çalışıyor?
 
 ```html
-<form name="iletisim" method="POST"
-      action="https://sifirdan-canliya.netlify.app/tesekkurler.html"
+<form name="iletisim" method="POST" action="/tesekkurler.html"
       data-netlify="true" netlify-honeypot="adres">
   <input type="hidden" name="form-name" value="iletisim" />
   <p hidden><input name="adres" /></p>   <!-- botlar için tuzak -->
@@ -23,7 +22,16 @@ Bu sitenin [iletişim sayfası](/iletisim.html) hiç sunucu kodu içermiyor. Gö
 
 1. Netlify yayın sırasında HTML'deki `data-netlify="true"` formunu bulur ve kaydeder.
 2. Ziyaretçi gönderince istek Netlify'a gider, gönderim panelde görünür.
-3. `action` tam adres olduğu için aynı HTML S3 ve EC2'deki kopyalardan da Netlify'a gönderir: üç sitede tek form.
+3. Netlify formu sadece `/` ile başlayan **göreli** bir `action` ile tanır; tam adres yazılırsa form kaydedilmez. S3 ve EC2'deki kopyalar için sayfadaki küçük bir betik, site Netlify'da değilse `action`'ı Netlify adresine çevirir: üç sitede tek form.
+
+```html
+<script>
+  if (location.origin !== "https://sifirdan-canliya.netlify.app") {
+    document.querySelector('form[name="iletisim"]').action =
+      "https://sifirdan-canliya.netlify.app/tesekkurler.html";
+  }
+</script>
+```
 
 Yeni Netlify sitelerinde form algılama kapalı gelir. Bir kere açılır:
 
