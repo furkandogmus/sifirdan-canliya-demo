@@ -1,0 +1,38 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-ink: #13161c;
+  --color-panel: #1c2029;
+  --color-line: #2c3240;
+  --color-paper: #f4f1ea;
+  --color-muted: #b8c0cc;
+  --color-dim: #8a93a3;
+  --color-accent: #f2913d;
+  --color-sky: #7fb3ff;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-ink text-paper font-sans antialiased;
+  }
+}
+
+/* Markdown bölümleri için koyu tema tipografisi */
+.prose-site {
+  @apply prose prose-invert max-w-none
+    prose-headings:font-semibold prose-headings:tracking-tight
+    prose-h2:mt-12 prose-h2:text-3xl
+    prose-p:text-muted prose-li:text-muted prose-strong:text-paper
+    prose-a:text-accent prose-a:no-underline hover:prose-a:underline
+    prose-code:text-sky prose-code:before:content-none prose-code:after:content-none
+    prose-pre:bg-panel prose-pre:border prose-pre:border-line
+    prose-th:text-paper prose-td:text-muted
+    prose-blockquote:border-accent prose-blockquote:text-paper;
+}

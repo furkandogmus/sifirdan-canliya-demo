@@ -6,3 +6,5 @@ node_modules/
 *.tfstate*
 *.tfvars
 tfplan
+dist/
+.astro/

@@ -1,0 +1,82 @@
+---
+import { render } from "astro:content";
+import Base from "../layouts/Base.astro";
+import { sortedBolumler, bolumHref, type Bolum } from "../lib/bolumler";
+import { REPO_URL } from "../consts";
+
+export async function getStaticPaths() {
+  const list = await sortedBolumler();
+  return list.map((entry, i) => ({
+    params: { slug: entry.id },
+    props: { entry, prev: list[i - 1], next: list[i + 1], index: i + 1, total: list.length },
+  }));
+}
+
+interface Props {
+  entry: Bolum;
+  prev?: Bolum;
+  next?: Bolum;
+  index: number;
+  total: number;
+}
+
+const { entry, prev, next, index, total } = Astro.props;
+const { Content, headings } = await render(entry);
+const toc = headings.filter((h) => h.depth === 2);
+const editUrl = `${REPO_URL}/edit/main/${entry.filePath}`;
+---
+
+<Base title={entry.data.title} description={entry.data.description}>
+  <div class="mx-auto grid max-w-6xl gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_240px]">
+    <article>
+      <p class="font-mono text-sm text-accent">
+        {entry.data.group} · {String(index).padStart(2, "0")}/{String(total).padStart(2, "0")}
+      </p>
+      <h1 class="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">{entry.data.title}</h1>
+      <p class="mt-4 text-lg text-muted">{entry.data.description}</p>
+
+      <div class="prose-site mt-10">
+        <Content />
+      </div>
+
+      <div class="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6 text-sm">
+        <a href={editUrl} class="text-dim hover:text-accent">Bu sayfayı GitHub'da düzenle →</a>
+        {entry.data.authors.length > 0 && (
+          <p class="text-dim">Yazanlar: {entry.data.authors.join(", ")}</p>
+        )}
+      </div>
+
+      <nav class="mt-8 grid gap-4 sm:grid-cols-2">
+        {prev ? (
+          <a href={bolumHref(prev)} class="group rounded-2xl border border-line bg-panel p-5 hover:border-accent">
+            <span class="text-sm text-dim">← Önceki</span>
+            <span class="mt-1 block font-semibold group-hover:text-accent">{prev.data.title}</span>
+          </a>
+        ) : <span />}
+        {next && (
+          <a href={bolumHref(next)} class="group rounded-2xl border border-line bg-panel p-5 text-right hover:border-accent">
+            <span class="text-sm text-dim">Sonraki →</span>
+            <span class="mt-1 block font-semibold group-hover:text-accent">{next.data.title}</span>
+          </a>
+        )}
+      </nav>
+    </article>
+
+    {toc.length > 0 && (
+      <aside class="hidden lg:block">
+        <div class="sticky top-24">
+          <p class="text-xs font-semibold uppercase tracking-widest text-dim">Bu bölümde</p>
+          <ul class="mt-4 space-y-2 border-l border-line text-sm">
+            {toc.map((h) => (
+              <li>
+                <a href={`#${h.slug}`} class="-ml-px block border-l border-transparent pl-4 text-muted hover:border-accent hover:text-paper">
+                  {h.text}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+    )}
+  </div>
+</Base>

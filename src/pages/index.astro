@@ -1,0 +1,150 @@
+---
+import Base from "../layouts/Base.astro";
+import { sortedBolumler, bolumHref } from "../lib/bolumler";
+import { GROUPS } from "../content.config";
+import { REPO_URL, SKILLS_URL } from "../consts";
+
+const bolumler = await sortedBolumler();
+const groups = GROUPS.map((g) => ({ name: g, items: bolumler.filter((b) => b.data.group === g) })).filter(
+  (g) => g.items.length > 0,
+);
+
+const routes = [
+  {
+    name: "Netlify",
+    tag: "En hızlı",
+    flow: ["GitHub", "Actions", "Netlify CDN"],
+    text: "Sunucu yok, ayar yok. PR açınca önizleme linki, merge edince production.",
+    href: "/netlify-rotasi.html",
+  },
+  {
+    name: "AWS S3 + CloudFront",
+    tag: "Sunucusuz",
+    flow: ["S3 (private)", "OAC", "CloudFront"],
+    text: "Terraform ile kurulur. En ucuz AWS yolu, bakım istemez.",
+    href: "/aws-s3-rotasi.html",
+  },
+  {
+    name: "AWS EC2",
+    tag: "Sunucu sizin",
+    flow: ["S3", "EC2 + nginx", "CloudFront"],
+    text: "SSH yok, SSM var. Sunucuyu öğrenmek ya da üstünde bir şey çalıştırmak için.",
+    href: "/aws-ec2-rotasi.html",
+  },
+];
+
+const steps = [
+  { t: "Prompt", d: "Ne istediğini yaz" },
+  { t: "AI ajanı", d: "Kodu ve altyapıyı yazar" },
+  { t: "Pull request", d: "Önizleme ve Terraform planı" },
+  { t: "Merge", d: "GitHub Actions devralır" },
+  { t: "Canlı", d: "HTTPS adres, her değişiklikte" },
+];
+---
+
+<Base>
+  <section class="relative overflow-hidden border-b border-line/70">
+    <div
+      class="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_60%_at_80%_0%,rgba(242,145,61,0.18),transparent_60%),radial-gradient(40%_50%_at_0%_100%,rgba(127,179,255,0.12),transparent_60%)]"
+    >
+    </div>
+    <div class="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+      <p class="font-mono text-sm uppercase tracking-[0.2em] text-accent">Canlı eğitim · açık kaynak</p>
+      <h1 class="mt-5 max-w-4xl text-5xl font-bold leading-[1.02] tracking-tight sm:text-7xl">
+        Sıfırdan canlıya,<br /><span class="text-accent">AI</span> ve terminalle.
+      </h1>
+      <p class="mt-6 max-w-2xl text-lg text-muted sm:text-xl">
+        Statik site, serverless, AWS Free Tier, Terraform ve GitHub Actions. Bir websitesini yazıp yayına almanın
+        bütün yolu, AI kod ajanının elini tutan CLI araçlarıyla.
+      </p>
+      <div class="mt-10 flex flex-wrap gap-3">
+        <a href={bolumHref(bolumler[0])} class="rounded-xl bg-accent px-5 py-3 font-semibold text-ink hover:bg-paper">
+          Baştan başla
+        </a>
+        <a href={SKILLS_URL} class="rounded-xl border border-line px-5 py-3 font-semibold hover:border-accent hover:text-accent">
+          Skill'leri kur
+        </a>
+      </div>
+      <pre
+        class="mt-12 max-w-2xl overflow-x-auto rounded-2xl border border-line bg-panel/80 p-5 font-mono text-sm text-muted"><span class="text-dim">$</span> npx skills add furkandogmus/sifirdan-canliya
+<span class="text-dim">$</span> <span class="text-sky">claude</span> "bu siteyi Netlify'da yayınla, GitHub'dan otomatik deploy olsun"</pre>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+    <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">Akış: prompt'tan canlı adrese</h2>
+    <ol class="mt-10 grid gap-4 sm:grid-cols-5">
+      {
+        steps.map((s, i) => (
+          <li class="relative rounded-2xl border border-line bg-panel p-5">
+            <span class="font-mono text-xs text-accent">{String(i + 1).padStart(2, "0")}</span>
+            <p class="mt-2 font-semibold">{s.t}</p>
+            <p class="mt-1 text-sm text-muted">{s.d}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section id="rotalar" class="border-y border-line/70 bg-panel/40">
+    <div class="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+      <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">Üç rota, aynı CI/CD</h2>
+      <p class="mt-3 max-w-2xl text-muted">
+        Bu sitenin kendisi üçünde birden yayında. Hepsi aynı repodan, aynı pull request akışıyla yönetiliyor.
+      </p>
+      <div class="mt-10 grid gap-6 md:grid-cols-3">
+        {
+          routes.map((r) => (
+            <a href={r.href} class="group flex flex-col rounded-2xl border border-line bg-ink p-6 transition hover:-translate-y-1 hover:border-accent">
+              <span class="self-start rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-accent">{r.tag}</span>
+              <h3 class="mt-4 text-xl font-semibold group-hover:text-accent">{r.name}</h3>
+              <p class="mt-2 flex-1 text-sm text-muted">{r.text}</p>
+              <p class="mt-6 flex flex-wrap items-center gap-2 font-mono text-xs text-dim">
+                {r.flow.map((f, i) => (
+                  <>
+                    {i > 0 && <span class="text-accent">→</span>}
+                    <span class="rounded-md border border-line px-2 py-1">{f}</span>
+                  </>
+                ))}
+              </p>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section id="bolumler" class="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+    <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">Bölümler</h2>
+    <div class="mt-10 grid gap-12">
+      {
+        groups.map((g) => (
+          <div>
+            <h3 class="text-sm font-semibold uppercase tracking-widest text-dim">{g.name}</h3>
+            <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {g.items.map((b) => (
+                <a href={bolumHref(b)} class="group rounded-2xl border border-line bg-panel p-5 hover:border-accent">
+                  <p class="font-semibold group-hover:text-accent">{b.data.title}</p>
+                  <p class="mt-2 text-sm text-muted">{b.data.description}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
+    <div class="rounded-3xl border border-accent/40 bg-gradient-to-br from-accent/15 to-transparent p-8 sm:p-12">
+      <h2 class="text-3xl font-bold tracking-tight">Bir bölüm eksik mi?</h2>
+      <p class="mt-3 max-w-2xl text-muted">
+        Her bölüm tek bir Markdown dosyası. Yeni bir dosya ekleyip pull request aç; birkaç dakika içinde PR'ına
+        önizleme linki düşer, merge edilince herkes görür.
+      </p>
+      <a href={`${REPO_URL}/blob/main/CONTRIBUTING.md`} class="mt-6 inline-block rounded-xl bg-paper px-5 py-3 font-semibold text-ink hover:bg-accent">
+        Nasıl katkıda bulunurum?
+      </a>
+    </div>
+  </section>
+</Base>
