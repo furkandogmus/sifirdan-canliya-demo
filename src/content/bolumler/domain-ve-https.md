@@ -9,12 +9,20 @@ Netlify ve CloudFront sana ücretsiz bir adres verir (`site-adi.netlify.app`, `d
 
 ## Domain nereden alınır?
 
-- **Cloudflare Registrar:** domain'i maliyetine satar, yenilemede sürpriz zam yoktur.
-- **Namecheap, Porkbun:** yaygın, kolay.
-- **Route 53:** AWS içinde; hosted zone ayda yaklaşık 0,50 USD ayrıca ücretlendirilir.
-- **.com.tr:** yetkili kayıt firmalarından alınır.
+Türkiye'den en kolayı yerli bir kayıt firması (ör. turkticaret.net): TL ile ödenir, bir `.com` ilk yıl 100 ₺ civarından başlar. Sepette iki şeye bak:
 
-Bir `.com` genelde yılda 10–15 USD civarıdır. Bu sitedeki her şey içinde tek gerçek masraf budur.
+- **Yenileme ücreti:** ilk yıl kampanyalı olabilir, ikinci yıl farklıdır.
+- **Ek paketler:** hosting, e-posta paketi, SSL sertifikası gerekmez; bu kurulumda hepsi ücretsiz var.
+
+Bu sitedeki her şey içinde tek gerçek masraf domain'dir; o da isteğe bağlı.
+
+## DNS'i Cloudflare'de yönet
+
+Domain kayıt firmasında kalır, DNS kayıtları ücretsiz **Cloudflare**'de tutulur: API'si var, kök domain'de CNAME desteği var ve Turnstile, Worker gibi sonraki adımlar zaten Cloudflare'de.
+
+1. Cloudflare › **Onboard a domain** › Free plan.
+2. Cloudflare'in verdiği iki nameserver'ı kayıt firmasının panelinde "DNS sunucuları" alanına yaz.
+3. Aktif olması 24 saate kadar sürebilir: `dig +short NS alanadi.com`
 
 ## DNS kayıtları
 
@@ -29,7 +37,7 @@ Kök domain (`ornek.com`) standart olarak CNAME alamaz; bu yüzden sağlayıcıl
 
 ## HTTPS sertifikası
 
-**Netlify:** domain'i panelden ekleyip DNS kaydını yönlendirdiğinde sertifikayı Let's Encrypt'ten kendisi alır ve yeniler.
+**Netlify:** kök domain için `CNAME @ → apex-loadbalancer.netlify.com`, `www` için `CNAME www → <site>.netlify.app` (Cloudflare'de "DNS only"). Netlify kaydı görünce Let's Encrypt sertifikasını kendisi alır ve yeniler.
 
 **AWS:** ACM sertifikaları ücretsizdir. Ama CloudFront'ta kullanılacak sertifika **mutlaka `us-east-1` (Kuzey Virginia) region'ında** açılmalıdır. Sertifikayı Frankfurt'ta açarsan CloudFront onu listede göstermez. Terraform'da bu, ayrı bir provider takma adıyla yapılır:
 
