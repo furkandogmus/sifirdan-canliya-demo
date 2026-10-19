@@ -1,0 +1,8 @@
+.env
+.env.*
+node_modules/
+.netlify/
+.terraform/
+*.tfstate*
+*.tfvars
+tfplan
