@@ -9,11 +9,6 @@ variable "project" {
   }
 }
 
-variable "region" {
-  type    = string
-  default = "eu-central-1"
-}
-
 variable "github_repo" {
   description = "Deploy edecek repo, sahip/ad biçiminde (örn. ornek-kullanici/sitem)."
   type        = string

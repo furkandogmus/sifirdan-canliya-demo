@@ -32,9 +32,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_REGION: eu-central-1
   TF_VAR_project: ${{ vars.PROJECT }}
-  TF_VAR_region: ${{ vars.AWS_REGION }}
   TF_IN_AUTOMATION: "true"
   # Yayınlanacak klasör. Build varsa çıktısı (Astro/Vite: dist).
   PUBLISH_DIR: dist
@@ -59,11 +58,11 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: eu-central-1
 
       - run: terraform fmt -check -recursive
 
-      - run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="region=${{ vars.AWS_REGION }}"
+      - run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="region=eu-central-1"
 
       - run: terraform validate
 
@@ -118,9 +117,9 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: eu-central-1
 
-      - run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="region=${{ vars.AWS_REGION }}"
+      - run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="region=eu-central-1"
 
       - run: terraform apply -input=false -auto-approve
 
