@@ -15,7 +15,7 @@ import { FORM_SITE_URL } from "../consts";
     <form
       name="iletisim"
       method="POST"
-      action={`${FORM_SITE_URL}/tesekkurler.html`}
+      action="/tesekkurler.html"
       data-netlify="true"
       netlify-honeypot="adres"
       class="mt-10 grid gap-5"
@@ -62,4 +62,10 @@ import { FORM_SITE_URL } from "../consts";
       <p class="text-sm text-dim">Spam koruması: gizli tuzak alanı ve Netlify'ın yerleşik spam filtresi.</p>
     </form>
   </section>
+  <!-- Netlify formu sadece göreli action ile tanır; S3/EC2 kopyalarında gönderimi Netlify'a yönlendir. -->
+  <script define:vars={{ formSite: FORM_SITE_URL }}>
+    if (location.origin !== formSite) {
+      document.querySelector('form[name="iletisim"]').action = formSite + "/tesekkurler.html";
+    }
+  </script>
 </Base>
