@@ -1,0 +1,63 @@
+name: netlify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: netlify-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+  NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
+  # Yayınlanacak klasör. Build varsa çıktısı (Astro/Vite: dist).
+  PUBLISH_DIR: dist
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install -g netlify-cli@27
+
+      - name: Build (package.json varsa)
+        run: if [ -f package.json ]; then npm ci && npm run build; fi
+
+      - name: Önizleme (PR)
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          URL=$(netlify deploy --dir "$PUBLISH_DIR" --no-build \
+            --alias "pr-${{ github.event.pull_request.number }}" \
+            --message "PR #${{ github.event.pull_request.number }} ${{ github.sha }}" \
+            --json | jq -r '.deploy_url')
+          # Kendi işaretli yorumunu günceller; diğer workflow'ların yorumlarına dokunmaz.
+          PR=${{ github.event.pull_request.number }}
+          BODY=$(printf '<!-- netlify-preview -->\nNetlify önizleme: %s' "$URL")
+          ID=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq '.[] | select(.body | startswith("<!-- netlify-preview -->")) | .id' | tail -1)
+          if [ -n "$ID" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$ID" -f body="$BODY" > /dev/null
+          else
+            gh pr comment "$PR" --body "$BODY"
+          fi
+
+      - name: Production
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          URL=$(netlify deploy --prod --dir "$PUBLISH_DIR" --no-build \
+            --message "${{ github.sha }}" --json | jq -r '.url')
+          echo "### Yayında: $URL" >> "$GITHUB_STEP_SUMMARY"
